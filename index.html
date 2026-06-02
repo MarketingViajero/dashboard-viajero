@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Social · Viajero 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ig: #E1306C;
+      --ig-light: #fce4ec;
+      --ig-dark: #ad1457;
+      --tt: #00c896;
+      --tt-light: #e8f5e9;
+      --tt-dark: #1b5e20;
+      --bg: #f5f4f0;
+      --surface: #ffffff;
+      --surface2: #f0ede8;
+      --border: rgba(0,0,0,0.08);
+      --text: #1a1a1a;
+      --text2: #6b6760;
+      --text3: #9e9b96;
+      --success: #1b7a4a;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    /* TOP BAR */
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .topbar-left { display: flex; align-items: baseline; gap: 12px; }
+    .topbar-title { font-size: 17px; font-weight: 500; letter-spacing: -0.02em; }
+    .topbar-sub { font-size: 12px; color: var(--text2); }
+    .topbar-badges { display: flex; gap: 8px; }
+    .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 99px; }
+    .badge-ig { background: var(--ig-light); color: var(--ig-dark); }
+    .badge-tt { background: var(--tt-light); color: var(--tt-dark); }
+
+    /* LAYOUT */
+    .main { max-width: 1100px; margin: 0 auto; padding: 32px 24px 60px; }
+    .section-label { font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 14px; display: flex; align-items: center; gap: 7px; }
+    .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* METRIC GRID */
+    .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .metric-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      border: 1px solid var(--border);
+      transition: box-shadow 0.2s;
+    }
+    .metric-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
+    .metric-label { font-size: 11px; color: var(--text2); margin-bottom: 6px; font-weight: 400; }
+    .metric-value { font-size: 26px; font-weight: 300; letter-spacing: -0.03em; color: var(--text); line-height: 1; }
+    .metric-value span { font-size: 14px; font-weight: 400; }
+    .metric-sub { font-size: 11px; margin-top: 6px; color: var(--text3); }
+    .metric-sub.up { color: var(--success); }
+    .metric-sub.up::before { content: '↑ '; }
+
+    /* CHART CARD */
+    .chart-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 22px 24px;
+      margin-bottom: 14px;
+    }
+    .chart-header { margin-bottom: 16px; }
+    .chart-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+    .chart-sub { font-size: 12px; color: var(--text2); }
+    .legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12px; color: var(--text2); margin-bottom: 14px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+    /* TWO COLUMNS */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    @media (max-width: 680px) { .two-col { grid-template-columns: 1fr; } }
+
+    /* BAR ROWS */
+    .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .bar-lbl { font-size: 12px; color: var(--text2); width: 100px; text-align: right; flex-shrink: 0; }
+    .bar-track { flex: 1; background: var(--surface2); border-radius: 4px; height: 8px; overflow: hidden; }
+    .bar-fill { height: 8px; border-radius: 4px; transition: width 0.6s ease; }
+    .bar-val { font-size: 12px; font-weight: 500; color: var(--text); width: 52px; font-family: 'DM Mono', monospace; }
+
+    /* INSIGHT */
+    .insight {
+      background: var(--surface2);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      font-size: 13px;
+      color: var(--text2);
+      line-height: 1.6;
+      margin-bottom: 20px;
+      border-left: 3px solid var(--ig);
+    }
+    .insight.tt { border-left-color: var(--tt); }
+    .insight strong { color: var(--text); font-weight: 500; }
+
+    /* DIVIDER */
+    hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+    /* SUMMARY STRIP */
+    .summary-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      background: var(--text);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      margin-bottom: 14px;
+      color: white;
+    }
+    .summary-item { }
+    .summary-label { font-size: 11px; opacity: 0.5; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .summary-val { font-size: 22px; font-weight: 300; letter-spacing: -0.02em; }
+    .summary-val small { font-size: 13px; }
+    .summary-note { font-size: 11px; opacity: 0.4; margin-top: 3px; }
+
+    /* FOOTER */
+    .footer { text-align: center; font-size: 11px; color: var(--text3); margin-top: 40px; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="topbar-title">Social Dashboard · Viajero</span>
+    <span class="topbar-sub">Datos reales Q1 2026 · Ene – Mar</span>
+  </div>
+  <div class="topbar-badges">
+    <span class="badge badge-ig">Instagram</span>
+    <span class="badge badge-tt">TikTok</span>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- RESUMEN EJECUTIVO -->
+  <div class="section-label" style="margin-bottom:16px;">Resumen ejecutivo Q1</div>
+  <div class="summary-strip">
+    <div class="summary-item">
+      <div class="summary-label">Visualizaciones IG</div>
+      <div class="summary-val">7.7<small>M</small></div>
+      <div class="summary-note">Orgánico + pago combinado</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Reproducciones TK</div>
+      <div class="summary-val">471<small>k</small></div>
+      <div class="summary-note">+178% Ene → Mar</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Engagement IG promedio</div>
+      <div class="summary-val">3.49<small>%</small></div>
+      <div class="summary-note">vs 2.1% promedio industria</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Engagement TK promedio</div>
+      <div class="summary-val">7.4<small>%</small></div>
+      <div class="summary-note">Ene: 9.01% — muy alto</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Nuevos seg. IG</div>
+      <div class="summary-val">18,120</div>
+      <div class="summary-note">Acumulado Q1</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Nuevos seg. TK</div>
+      <div class="summary-val">1,388</div>
+      <div class="summary-note">Feb + Mar</div>
+    </div>
+  </div>
+
+  <hr />
+
+  <!-- IG ALCANCE -->
+  <div class="section-label">Instagram · Alcance e impresiones</div>
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="metric-label">Visualizaciones totales Q1</div>
+      <div class="metric-value">7.7<span>M</span></div>
+      <div class="metric-sub">Q1 acumulado</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Visualizaciones orgánicas</div>
+      <div class="metric-value">3.9<span>M</span></div>
+      <div class="metric-sub">51% del total</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Visualizaciones pagas</div>
+      <div class="metric-value">3.8<span>M</span></div>
+      <div class="metric-sub">49% del total</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Alcance Q1</div>
+      <div class="metric-value">1.2<span>M</span></div>
+      <div class="metric-sub">personas únicas</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Visitas al perfil Q1</div>
+      <div class="metric-value">138<span>k</span></div>
+      <div class="metric-sub">acumulado</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Clics en enlace Q1</div>
+      <div class="metric-value">17,793</div>
+      <div class="metric-sub">tráfico generado</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">Alcance mensual</div>
+        <div class="chart-sub">Personas únicas · Ene–Mar</div>
+      </div>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-dot" style="background:#E1306C;"></span> Alcance</span>
+      </div>
+      <div style="position:relative;height:200px;">
+        <canvas id="igAlcance" role="img" aria-label="Alcance mensual Instagram">Ene 480k · Feb 327k · Mar 409k</canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">Orgánico vs. pago</div>
+        <div class="chart-sub">Visualizaciones por mes</div>
+      </div>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-dot" style="background:#E1306C;"></span> Orgánico</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#f8bbd0;"></span> Pago</span>
+      </div>
+      <div style="position:relative;height:200px;">
+        <canvas id="igOrgPag" role="img" aria-label="Orgánico vs pago Instagram">Orgánico: 1.7M, 1.1M, 1.1M · Pago: 1.3M, 1.2M, 1.3M</canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- IG ENGAGEMENT -->
+  <div class="section-label">Instagram · Engagement y seguidores</div>
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="metric-label">Interacciones Q1</div>
+      <div class="metric-value">63,793</div>
+      <div class="metric-sub">total acumulado</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Likes Q1</div>
+      <div class="metric-value">46,842</div>
+      <div class="metric-sub">73% de interacciones</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Compartidos Q1</div>
+      <div class="metric-value">17,224</div>
+      <div class="metric-sub up">alto vs. promedio</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Comentarios Q1</div>
+      <div class="metric-value">1,935</div>
+      <div class="metric-sub">3% de interacciones</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Tasa engagement</div>
+      <div class="metric-value">3.49<span>%</span></div>
+      <div class="metric-sub up">vs 2.1% industria</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Nuevos seguidores</div>
+      <div class="metric-value">18,120</div>
+      <div class="metric-sub">Q1 acumulado</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">Interacciones mensuales</div>
+        <div class="chart-sub">Total por mes</div>
+      </div>
+      <div style="position:relative;height:200px;">
+        <canvas id="igEng" role="img" aria-label="Interacciones IG mensuales">Ene 18,100 · Feb 16,260 · Mar 29,433</canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">Likes por tipo de contenido</div>
+        <div class="chart-sub">Acumulado Q1</div>
+      </div>
+      <div style="margin-top:12px;">
+        <div class="bar-row">
+          <span class="bar-lbl">Reels</span>
+          <div class="bar-track"><div class="bar-fill" style="background:#E1306C;width:83%;"></div></div>
+          <span class="bar-val">30,561</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lbl">Posts</span>
+          <div class="bar-track"><div class="bar-fill" style="background:#f06292;width:29%;"></div></div>
+          <span class="bar-val">10,662</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lbl">Stories</span>
+          <div class="bar-track"><div class="bar-fill" style="background:#f8bbd0;width:15%;"></div></div>
+          <span class="bar-val">5,619</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lbl">Guardados</span>
+          <div class="bar-track"><div class="bar-fill" style="background:#fce4ec;width:5%;"></div></div>
+          <span class="bar-val">2,070</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="insight">
+    <strong>Insight IG Q1:</strong> Los Reels generan el 65% de los likes totales y son el principal motor de engagement. El alcance orgánico y pago están casi equilibrados (51%/49%), lo que indica dependencia de pauta para mantener visibilidad. Marzo fue el mejor mes con 29,433 interacciones, impulsado por Reels con 16,125 likes y 8,668 compartidos.
+  </div>
+
+  <hr />
+
+  <!-- TK ALCANCE -->
+  <div class="section-label">TikTok · Alcance e impresiones</div>
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="metric-label">Reproducciones Q1</div>
+      <div class="metric-value">471<span>k</span></div>
+      <div class="metric-sub">post views acumulado</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Profile views Q1</div>
+      <div class="metric-value">42,688</div>
+      <div class="metric-sub up">+626% Ene → Mar</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Seguidores totales</div>
+      <div class="metric-value">17,127</div>
+      <div class="metric-sub">a fin de marzo</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Seguidores ganados</div>
+      <div class="metric-value">1,388</div>
+      <div class="metric-sub up">Q1 acumulado</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Posts publicados</div>
+      <div class="metric-value">93</div>
+      <div class="metric-sub">Q1 total</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Promedio views/post</div>
+      <div class="metric-value">5,069</div>
+      <div class="metric-sub">471k ÷ 93 posts</div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-header">
+      <div class="chart-title">Reproducciones mensuales TikTok</div>
+      <div class="chart-sub">Crecimiento de views Ene–Mar 2026</div>
+    </div>
+    <div style="position:relative;height:200px;">
+      <canvas id="tkViews" role="img" aria-label="Reproducciones TikTok mensuales">Ene 90,844 · Feb 127,683 · Mar 252,855</canvas>
+    </div>
+  </div>
+
+  <!-- TK FUENTES DE TRÁFICO -->
+  <div class="two-col">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">Fuentes de tráfico</div>
+        <div class="chart-sub">Origen de vistas · promedio Q1</div>
+      </div>
+      <div style="margin-top:10px;">
+        <div class="bar-row">
+          <span class="bar-lbl">Para ti (FYP)</span>
+          <div class="bar-track"><div class="bar-fill" style="background:#00c896;width:61%;"></div></div>
+          <span class="bar-val">60.8%</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lbl">Perfil</span>
+          <div class="bar-track"><div class="bar-fill" style="background:#4db6ac;width:18%;"></div></div>
+          <span class="bar-val">17.5%</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lbl">Búsqueda</span>
+          <div class="bar-track"><div class="bar-fill" style="background:#80cbc4;width:12%;"></div></div>
+          <span class="bar-val">12.3%</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lbl">Siguiendo</span>
+          <div class="bar-track"><div class="bar-fill" style="background:#b2dfdb;width:1%;"></div></div>
+          <span class="bar-val">1.3%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TK ENGAGEMENT -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">Interacciones TikTok Q1</div>
+        <div class="chart-sub">Total: 17,404</div>
+      </div>
+      <div style="margin-top:10px;">
+        <div class="bar-row">
+          <span class="bar-lbl">Likes</span>
+          <div class="bar-track"><div class="bar-fill" style="background:#00c896;width:73%;"></div></div>
+          <span class="bar-val">12,691</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lbl">Shares</span>
+          <div class="bar-track"><div class="bar-fill" style="background:#4db6ac;width:25%;"></div></div>
+          <span class="bar-val">4,335</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lbl">Comentarios</span>
+          <div class="bar-track"><div class="bar-fill" style="background:#b2dfdb;width:2%;"></div></div>
+          <span class="bar-val">378</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="insight tt">
+    <strong>Insight TikTok Q1:</strong> El <strong>60.8% del alcance proviene del FYP</strong>, indicando excelente desempeño orgánico sin dependencia de pauta. Las reproducciones crecieron <strong>+178%</strong> de enero (90k) a marzo (252k). Con solo 17,127 seguidores se logran números sólidos: tasa de engagement del 9% en enero, la más alta del trimestre.
+  </div>
+
+  <hr />
+
+  <!-- COMPARATIVA -->
+  <div class="section-label">Comparativa Q1 · Instagram vs. TikTok</div>
+  <div class="chart-card">
+    <div class="chart-header">
+      <div class="chart-title">Tasa de engagement mensual</div>
+      <div class="chart-sub">Porcentaje · Ene–Mar 2026</div>
+    </div>
+    <div class="legend">
+      <span class="legend-item"><span class="legend-dot" style="background:#E1306C;"></span> Instagram</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#00c896;"></span> TikTok</span>
+    </div>
+    <div style="position:relative;height:220px;">
+      <canvas id="engComp" role="img" aria-label="Engagement comparado IG vs TK">IG: 3.57%, 3.58%, 3.33% · TK: 9.01%, 7.77%, 5.43%</canvas>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<div class="footer" style="padding-bottom:32px;">
+  Dashboard generado con datos reales · Viajero 2026 · Q1 Enero–Marzo
+</div>
+
+<script>
+const meses = ['Enero','Febrero','Marzo'];
+
+new Chart(document.getElementById('igAlcance'), {
+  type: 'bar',
+  data: { labels: meses, datasets: [{ data:[480981,326934,409138], backgroundColor:'rgba(225,48,108,0.75)', borderRadius:6, borderSkipped:false }] },
+  options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+    scales:{ y:{ ticks:{callback:v=>(v/1000).toFixed(0)+'k',font:{size:11},color:'#9e9b96'}, grid:{color:'rgba(0,0,0,0.05)'}, border:{display:false} }, x:{ticks:{font:{size:11},color:'#9e9b96'},grid:{display:false},border:{display:false}} } }
+});
+
+new Chart(document.getElementById('igOrgPag'), {
+  type: 'bar',
+  data: { labels: meses, datasets: [
+    { label:'Orgánico', data:[1724278,1102102,1086988], backgroundColor:'rgba(225,48,108,0.75)', borderRadius:4 },
+    { label:'Pago', data:[1279645,1171386,1321099], backgroundColor:'rgba(248,187,208,0.9)', borderRadius:4 }
+  ]},
+  options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+    scales:{ y:{ticks:{callback:v=>(v/1000000).toFixed(1)+'M',font:{size:11},color:'#9e9b96'}, grid:{color:'rgba(0,0,0,0.05)'},border:{display:false}}, x:{ticks:{font:{size:11},color:'#9e9b96'},grid:{display:false},border:{display:false}} } }
+});
+
+new Chart(document.getElementById('igEng'), {
+  type: 'line',
+  data: { labels: meses, datasets: [{ data:[18100,16260,29433], borderColor:'#E1306C', backgroundColor:'rgba(225,48,108,0.08)', pointBackgroundColor:'#E1306C', tension:0.4, fill:true, pointRadius:5, pointHoverRadius:7 }]},
+  options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+    scales:{ y:{ticks:{callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v,font:{size:11},color:'#9e9b96'},grid:{color:'rgba(0,0,0,0.05)'},border:{display:false}}, x:{ticks:{font:{size:11},color:'#9e9b96'},grid:{display:false},border:{display:false}} } }
+});
+
+new Chart(document.getElementById('tkViews'), {
+  type: 'bar',
+  data: { labels: meses, datasets: [{ data:[90844,127683,252855], backgroundColor:'rgba(0,200,150,0.75)', borderRadius:6, borderSkipped:false }]},
+  options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+    scales:{ y:{ticks:{callback:v=>(v/1000).toFixed(0)+'k',font:{size:11},color:'#9e9b96'},grid:{color:'rgba(0,0,0,0.05)'},border:{display:false}}, x:{ticks:{font:{size:11},color:'#9e9b96'},grid:{display:false},border:{display:false}} } }
+});
+
+new Chart(document.getElementById('engComp'), {
+  type: 'line',
+  data: { labels: meses, datasets: [
+    { label:'Instagram', data:[3.57,3.58,3.33], borderColor:'#E1306C', backgroundColor:'rgba(225,48,108,0.08)', pointBackgroundColor:'#E1306C', tension:0.4, fill:true, pointRadius:5 },
+    { label:'TikTok', data:[9.01,7.77,5.43], borderColor:'#00c896', backgroundColor:'rgba(0,200,150,0.08)', pointBackgroundColor:'#00c896', tension:0.4, fill:true, borderDash:[5,3], pointRadius:5 }
+  ]},
+  options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+    scales:{ y:{ticks:{callback:v=>v.toFixed(1)+'%',font:{size:11},color:'#9e9b96'},grid:{color:'rgba(0,0,0,0.05)'},border:{display:false}}, x:{ticks:{font:{size:11},color:'#9e9b96'},grid:{display:false},border:{display:false}} } }
+});
+</script>
+</body>
+</html>
